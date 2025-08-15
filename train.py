@@ -100,13 +100,10 @@ def training(net,
              data_type=data_type
              ):
     global_step = 1
-    plot_loss_ls = list()
-    plot_val_loss_ls = list()
     for epoch in range(1, training_epoch + 1):
         trans = genfromtxt(trans_file, delimiter=',').astype(np.float32)
         trans = torch.tensor(trans)
         net.train()
-        loss_sum_ls = list()
         for train_feature, train_feature_small, train_label, train_label_small in train_loader:
             trans, train_feature, train_feature_small, train_label, train_label_small = trans.to(
                 device), train_feature.to(device), train_feature_small.to(device), \
@@ -115,17 +112,13 @@ def training(net,
             pred_fg, distill_loss, view_map = net(train_feature, train_feature_small)
             loss = mask_loss(pred_fg, train_label, risk_mask, data_type=data_type) + distill_loss
             # loss = mask_loss(pred_fg, train_label, risk_mask, data_type=data_type)
-            plot_loss = loss
-            loss_sum_ls.append(plot_loss.cpu().detach().numpy())
             trainer.zero_grad()
             loss.backward()
             trainer.step()
             global_step += 1
 
-        plot_loss_ls.append(sum(loss_sum_ls) / len(loss_sum_ls))
         val_loss = compute_loss(net, val_loader, risk_mask, trans_file, grid_node_map, global_step - 1, device,
                                 data_type)
-        plot_val_loss_ls.append(val_loss)
         print('global step: %s, epoch: %s,val loss：%.6f' % (global_step - 1, epoch, val_loss), flush=True)
 
         if epoch == 1 or val_loss < early_stop.best_score:
@@ -148,17 +141,6 @@ def training(net,
                   % (early_stop.best_rmse, early_stop.best_recall, early_stop.best_map), flush=True)
             print('best test high RMSE: %.4f,best test high Recall: %.2f%%,best high test MAP: %.4f'
                   % (early_stop.best_high_rmse, early_stop.best_high_recall, early_stop.best_high_map), flush=True)
-            # save the best map for visualization.
-            with open(f'experiment_plot\\visualization\\result\\best_pre_{city}.pkl', 'wb') as f:
-                pickle.dump(early_stop.best_pre, f)
-            with open(f'experiment_plot\\visualization\\result\\best_label_{city}.pkl', 'wb') as f:
-                pickle.dump(early_stop.best_label, f)
-            with open(f'experiment_plot\\visualization\\result\\view_map_{city}.pkl', 'wb') as f:
-                pickle.dump(view_map, f)
-            with open(f'experiment_plot\\TrainingCurve\\results\\training_loss_{city}.pkl', 'wb') as f:
-                pickle.dump(plot_loss_ls, f)
-            with open(f'experiment_plot\\TrainingCurve\\results\\val_loss_{city}.pkl', 'wb') as f:
-                pickle.dump(plot_val_loss_ls, f)
             break
 
     return early_stop.best_rmse, early_stop.best_recall, early_stop.best_map
@@ -166,18 +148,14 @@ def training(net,
 
 def main(config):
     batch_size = config['batch_size']
-    # batch_size = args.batch
     learning_rate = config['learning_rate']
-    num_of_gru_layers = config['num_of_gru_layers']
-    gru_hidden_size = config['gru_hidden_size']
     gcn_num_filter = config['gcn_num_filter']
 
     loaders = []
     scaler = ""
     train_data_shape = ""
-    graph_feature_shape = ""
-    for idx, (
-            x, x_small, y, y_small, high_x, high_x_small, high_y, high_y_small, scaler) in enumerate(
+    for idx, (x, x_small, y, y_small, high_x, high_x_small, high_y, high_y_small,
+              scaler) in enumerate(
         normal_and_generate_dataset(
             all_data_filename,
             all_data_filename_small,
@@ -189,34 +167,11 @@ def main(config):
             days_of_week=days_of_week,
             pre_len=pre_len)):
 
-        # if args.test:
-        #     x = x[:100]
-        #     x_small = x_small[:100]
-        #     y = y[:100]
-        #
-        #     high_x = high_x[:100]
-        #     high_x_small = high_x_small[:100]
-        #     high_y = high_y[:100]
-
-        # if 'nyc' in all_data_filename:
-        #     graph_x = x[:, :, [0, 1, 2], :, :].reshape((x.shape[0], x.shape[1], -1, north_south_map * west_east_map))
-        #     high_graph_x = high_x[:, :, [0, 1, 2], :, :].reshape(
-        #         (high_x.shape[0], high_x.shape[1], -1, north_south_map * west_east_map))
-            # graph_x = np.dot(graph_x, grid_node_map)
-            # high_graph_x = np.dot(high_graph_x, grid_node_map)
-        # if 'chicago' in all_data_filename:
-            # graph_x = x[:, :, [0, 1, 2], :, :].reshape((x.shape[0], x.shape[1], -1, north_south_map * west_east_map))
-            # high_graph_x = high_x[:, :, [0, 1, 2], :, :].reshape(
-            #     (high_x.shape[0], high_x.shape[1], -1, north_south_map * west_east_map))
-            # graph_x = np.dot(graph_x, grid_node_map)
-            # high_graph_x = np.dot(high_graph_x, grid_node_map)
         print("feature:", str(x.shape), "label:", str(y.shape),
               "high feature:", str(high_x.shape), "high label:", str(high_y.shape))
-        # print("graph_x:", str(graph_x.shape), "high_graph_x:", str(high_graph_x.shape))
         if idx == 0:
             scaler = scaler
             train_data_shape = x.shape
-            # graph_feature_shape = graph_x.shape
 
         loaders.append(Data.DataLoader(
             Data.TensorDataset(

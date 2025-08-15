@@ -1,4 +1,3 @@
-# import joblib
 import numpy as np
 import pickle as pkl
 import sys
@@ -100,7 +99,8 @@ def normal_and_generate_dataset(
     risk_taxi_time_data = pkl.load(open(all_data_filename, 'rb')).astype(np.float32)
     risk_taxi_time_data_small = pkl.load(open(all_data_filename_small, 'rb')).astype(np.float32)
 
-    for i in split_and_norm_data(risk_taxi_time_data, risk_taxi_time_data_small,
+    for i in split_and_norm_data(risk_taxi_time_data,
+                                 risk_taxi_time_data_small,
                                  train_rate=train_rate,
                                  valid_rate=valid_rate,
                                  recent_prior=recent_prior,
@@ -239,10 +239,8 @@ def normal_and_generate_dataset_time(
 ):
     all_data = pkl.load(open(all_data_filename, 'rb')).astype(np.float32)
     all_data_small = pkl.load(open(all_data_filename_small, 'rb')).astype(np.float32)
-    # content = joblib.load(open("D:/Data/data/nyc/shikong.pkl", 'rb')).astype(np.float32)
-    # contents = joblib.load(open("D:/Data/data/nyc/shikong1.pkl", 'rb')).astype(np.float32)
-    for i in split_and_norm_data_time(all_data, all_data_small,
-
+    for i in split_and_norm_data_time(all_data,
+                                      all_data_small,
                                       train_rate=train_rate,
                                       valid_rate=valid_rate,
                                       recent_prior=recent_prior,
