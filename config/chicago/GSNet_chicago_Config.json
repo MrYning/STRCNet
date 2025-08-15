@@ -23,8 +23,5 @@
   "training_epoch": 200,
   "optimizer": "adam",
   "batch_size": 32,
-  "learning_rate": 0.00001,
-  "num_of_gru_layers": 5,
-  "gru_hidden_size": 256,
-  "gcn_num_filter": 64
+  "learning_rate": 0.0001
 }
